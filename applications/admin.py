@@ -8,7 +8,7 @@ class ApplicationDocumentInline(admin.TabularInline):
 
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'email', 'job_post', 'status', 'get_total_experience', 'created_at')
+    list_display = ('id', 'full_name', 'email', 'job_post', 'status', 'get_total_experience', 'created_at')
     list_filter = ('status', 'job_post__agency', 'created_at')
     search_fields = ('full_name', 'email', 'job_post__title')
     readonly_fields = ('ip_address', 'created_at', 'updated_at', 'get_total_experience')

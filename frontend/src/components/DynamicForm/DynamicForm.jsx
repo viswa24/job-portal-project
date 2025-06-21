@@ -176,7 +176,7 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                                     const arr = [...arrValues];
                                     if (arr[idx]) {
                                       arr[idx][subfield.name] = formatted;
-                                      setFieldValue(field.name, arr);
+                                      setFieldValue(field.name, arr, true);
                                     }
                                   }}
                                   views={subfield.type === 'month_year' || subfield.format === 'month-year' ? ['year', 'month'] : ['year', 'month', 'day']}
@@ -184,20 +184,31 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                                   slotProps={{ textField: { fullWidth: true, required: subfield.required, error: !!(touched[field.name]?.[idx]?.[subfield.name] && errors[field.name]?.[idx]?.[subfield.name]), helperText: touched[field.name]?.[idx]?.[subfield.name] && errors[field.name]?.[idx]?.[subfield.name] } }}
                                 />
                               </LocalizationProvider>
+                            ) : subfield.type === 'file' ? (
+                              <FormControl>
+                                <input
+                                  type="file"
+                                  name={`${field.name}[${idx}].${subfield.name}`}
+                                  onChange={(e) => setFieldValue(`${field.name}[${idx}].${subfield.name}`, e.currentTarget.files[0], true)}
+                                  required={subfield.required}
+                                />
+                                {getIn(touched, `${field.name}[${idx}].${subfield.name}`) && getIn(errors, `${field.name}[${idx}].${subfield.name}`) && 
+                                  <Typography color="error" variant="caption">{getIn(errors, `${field.name}[${idx}].${subfield.name}`)}</Typography>
+                                }
+                              </FormControl>
                             ) : (
                               <Field
                                 as={TextField}
                                 name={`${field.name}[${idx}].${subfield.name}`}
                                 label={subfield.label}
-                                type={subfield.type === 'file' ? 'file' : 'text'}
+                                type={'text'}
                                 fullWidth
                                 required={subfield.required}
                                 error={touched[field.name]?.[idx]?.[subfield.name] && !!errors[field.name]?.[idx]?.[subfield.name]}
                                 helperText={touched[field.name]?.[idx]?.[subfield.name] && errors[field.name]?.[idx]?.[subfield.name]}
-                                onChange={subfield.type === 'file' ? (e) => setFieldValue(`${field.name}[${idx}].${subfield.name}`, e.currentTarget.files[0]) : handleChange}
+                                onChange={handleChange}
                                 multiline={subfield.type === 'textarea'}
                                 rows={subfield.type === 'textarea' ? 4 : 1}
-                                InputLabelProps={subfield.type === 'file' ? { shrink: true } : {}}
                               />
                             )}
                           </Grid>
@@ -205,12 +216,24 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                         <Grid item xs={12} sm={1}>
                           <IconButton onClick={() => arrayHelpers.remove(idx)}><Delete /></IconButton>
                         </Grid>
+                        {field.name === 'work_experience' && (
+                            <Grid item xs={12}>
+                                <Typography variant="body2" color="textSecondary">
+                                    Experience: {calculateExperience(item.from_date, item.to_date)}
+                                </Typography>
+                            </Grid>
+                        )}
                       </Grid>
                     </Paper>
                   ))}
                   <Button variant="outlined" onClick={() => arrayHelpers.push(field.fields.reduce((acc, f) => ({ ...acc, [f.name]: '' }), {}))}>
                     Add {field.item_label || 'Item'}
                   </Button>
+                  {field.name === 'work_experience' && (
+                    <Typography variant="h6" sx={{ mt: 2 }}>
+                        Total Experience: {calculateTotalExperience(values.work_experience)}
+                    </Typography>
+                  )}
                 </Box>
               );
             }}
@@ -292,6 +315,24 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
       );
     }
 
+    if (field.type === 'file') {
+      return (
+        <FormControl fullWidth required={field.required} error={touched[field.name] && !!errors[field.name]}>
+          <Typography variant="body1" sx={{ mb: 1 }}>{field.label}</Typography>
+          <input
+            type="file"
+            name={field.name}
+            onChange={(e) => {
+              setFieldValue(field.name, e.currentTarget.files[0]);
+              formik.setFieldTouched(field.name, true, true);
+            }}
+            required={field.required}
+          />
+          {touched[field.name] && errors[field.name] && <Typography color="error" variant="caption">{errors[field.name]}</Typography>}
+        </FormControl>
+      );
+    }
+
     if (field.type === 'signature') {
       return <SignatureCanvasField key={field.name} field={field} formik={formik} />;
     }
@@ -333,18 +374,83 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
         as={TextField}
         name={field.name}
         label={field.label}
-        type={field.type === 'file' ? 'file' : field.type}
+        type={field.type}
         fullWidth
         required={field.required}
         error={touched[field.name] && !!errors[field.name]}
         helperText={touched[field.name] && errors[field.name]}
-        onChange={field.type === 'file' ? (e) => setFieldValue(field.name, e.currentTarget.files[0]) : handleChange}
+        onChange={handleChange}
         multiline={field.type === 'textarea'}
         rows={field.type === 'textarea' ? 4 : 1}
-        InputLabelProps={field.type === 'file' ? { shrink: true } : {}}
         sx={field.type === 'number' ? numberFieldStyles : undefined}
       />
     );
+  };
+
+  const calculateExperience = (startDate, endDate) => {
+    if (!startDate || !endDate) return 'Please provide start and end dates.';
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Invalid date format.';
+
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+    let days = end.getDate() - start.getDate();
+
+    if (days < 0) {
+        months--;
+        const lastMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+        days += lastMonth.getDate();
+    }
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    return `${years} years, ${months} months, ${days} days`;
+  };
+
+  const calculateTotalExperience = (experiences) => {
+    if (!Array.isArray(experiences)) return '0 years, 0 months, 0 days';
+
+    let totalYears = 0;
+    let totalMonths = 0;
+    let totalDays = 0;
+
+    experiences.forEach(exp => {
+        if (exp.from_date && exp.to_date) {
+            const start = new Date(exp.from_date);
+            const end = new Date(exp.to_date);
+
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                let years = end.getFullYear() - start.getFullYear();
+                let months = end.getMonth() - start.getMonth();
+                let days = end.getDate() - start.getDate();
+
+                if (days < 0) {
+                    months--;
+                    const lastMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+                    days += lastMonth.getDate();
+                }
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+                totalYears += years;
+                totalMonths += months;
+                totalDays += days;
+            }
+        }
+    });
+
+    totalMonths += Math.floor(totalDays / 30);
+    totalDays %= 30;
+    totalYears += Math.floor(totalMonths / 12);
+    totalMonths %= 12;
+
+    return `${totalYears} years, ${totalMonths} months, ${totalDays} days`;
   };
 
   const initialValues = useMemo(() => {

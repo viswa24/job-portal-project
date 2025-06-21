@@ -11,12 +11,16 @@ class ApplicationDocumentSerializer(serializers.ModelSerializer):
 class ApplicationSerializer(serializers.ModelSerializer):
     job_post_details = JobPostSerializer(source='job_post', read_only=True)
     documents = ApplicationDocumentSerializer(many=True, read_only=True)
+    agency_code = serializers.SerializerMethodField()
     
     class Meta:
         model = Application
-        fields = ['id', 'job_post', 'job_post_details', 'full_name', 'email', 'phone', 'form_data', 'photo', 'signature', 'status', 'notes', 'documents', 'created_at', 'updated_at', 'ip_address']
+        fields = ['id', 'agency_code', 'job_post', 'job_post_details', 'full_name', 'email', 'phone', 'form_data', 'photo', 'signature', 'status', 'notes', 'documents', 'created_at', 'updated_at', 'ip_address']
         read_only_fields = ['status', 'created_at', 'updated_at', 'ip_address']
     
+    def get_agency_code(self, obj):
+        return obj.job_post.agency.code
+
     def validate_form_data(self, value):
         # Validate that form_data matches the job_post's form_schema
         job_post = self.context.get('job_post')

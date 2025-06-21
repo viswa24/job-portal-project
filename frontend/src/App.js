@@ -4,7 +4,7 @@ import { ThemeProvider, CssBaseline, createTheme } from '@mui/material';
 import LandingPage from './pages/LandingPage';
 import ApplicationPage from './pages/ApplicationPage';
 import ApplicationDetailsPage from './pages/ApplicationDetailsPage';
-import { ThankYouPage } from './pages/ApplicationDetailsPage';
+import SuccessPage from './pages/SuccessPage';
 
 const theme = createTheme({
   palette: {
@@ -24,7 +24,7 @@ function App() {
           <Route path="/apply/:agencyCode" element={<LandingPage />} />
           <Route path="/apply/:agencyCode/form" element={<ApplicationPage />} />
           <Route path="/applications/:applicationId" element={<ApplicationDetailsPage />} />
-          <Route path="/apply/:agencyCode/thankyou/:applicationId" element={<ThankYouPage />} />
+          <Route path="/success/:applicationId" element={<SuccessPage />} />
         </Routes>
       </Router>
     </ThemeProvider>
