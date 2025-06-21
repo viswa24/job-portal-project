@@ -1,0 +1,11 @@
+Django>=5.2.2
+djangorestframework>=3.16.0
+django-cors-headers>=4.7.0
+django-storages>=1.14.6
+boto3>=1.38.32
+python-dotenv>=1.1.0
+psycopg2-binary>=2.9.10
+Pillow>=10.2.0  # For image processing
+django-filter>=24.1  # For filtering in DRF
+django-ratelimit>=4.1.0  # For rate limiting
+django-cleanup>=8.0.0  # For automatic file cleanup 
