@@ -101,7 +101,7 @@ const SignatureCanvasField = ({ field, formik }) => {
   );
 };
 
-const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange }) => {
+const DynamicForm = ({ schema, formik, jobPostId, jobPosts, selectedJobPost, onJobChange }) => {
   const navigate = useNavigate();
 
   const calculateAge = (birthDate, asOnDate) => {
@@ -189,7 +189,10 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                                 <input
                                   type="file"
                                   name={`${field.name}[${idx}].${subfield.name}`}
-                                  onChange={(e) => setFieldValue(`${field.name}[${idx}].${subfield.name}`, e.currentTarget.files[0], true)}
+                                  onChange={(e) => {
+                                    setFieldValue(`${field.name}[${idx}].${subfield.name}`, e.currentTarget.files[0]);
+                                    formik.validateField(`${field.name}[${idx}].${subfield.name}`);
+                                  }}
                                   required={subfield.required}
                                 />
                                 {getIn(touched, `${field.name}[${idx}].${subfield.name}`) && getIn(errors, `${field.name}[${idx}].${subfield.name}`) && 
@@ -288,7 +291,7 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                   value={values[field.name] ? new Date(values[field.name]) : null}
                   onChange={newValue => {
                     const formatted = newValue ? newValue.toISOString().split('T')[0] : '';
-                    setFieldValue(field.name, formatted);
+                    formik.setFieldValue(field.name, formatted);
                   }}
                   views={field.format === 'month-year' ? ['year', 'month'] : ['year', 'month', 'day']}
                   format={field.format === 'month-year' ? 'MM/yyyy' : 'dd/MM/yyyy'}
@@ -296,8 +299,8 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                     textField: { 
                       fullWidth: true, 
                       required: field.required, 
-                      error: !!(touched[field.name] && errors[field.name]), 
-                      helperText: touched[field.name] && errors[field.name] 
+                      error: !!(formik.touched[field.name] && formik.errors[field.name]), 
+                      helperText: formik.touched[field.name] && formik.errors[field.name] 
                     } 
                   }}
                 />
@@ -317,18 +320,18 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
 
     if (field.type === 'file') {
       return (
-        <FormControl fullWidth required={field.required} error={touched[field.name] && !!errors[field.name]}>
+        <FormControl fullWidth required={field.required} error={formik.touched[field.name] && !!formik.errors[field.name]}>
           <Typography variant="body1" sx={{ mb: 1 }}>{field.label}</Typography>
           <input
             type="file"
             name={field.name}
             onChange={(e) => {
-              setFieldValue(field.name, e.currentTarget.files[0]);
-              formik.setFieldTouched(field.name, true, true);
+              formik.setFieldValue(field.name, e.currentTarget.files[0]);
+              formik.validateField(field.name);
             }}
             required={field.required}
           />
-          {touched[field.name] && errors[field.name] && <Typography color="error" variant="caption">{errors[field.name]}</Typography>}
+          {formik.touched[field.name] && formik.errors[field.name] && <Typography color="error" variant="caption">{formik.errors[field.name]}</Typography>}
         </FormControl>
       );
     }
@@ -346,10 +349,10 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
               checked={values[field.name] || false}
               onChange={(e) => {
                 const isChecked = e.target.checked;
-                setFieldValue(field.name, isChecked);
+                formik.setFieldValue(field.name, isChecked);
                 if (field.name === 'same_as_permanent') {
                   if (isChecked) {
-                    setFieldValue('communication_address', values.permanent_address);
+                    formik.setFieldValue('communication_address', values.permanent_address);
                   } else {
                     const commAddressField = schema.fields.find(f => f.name === 'communication_address');
                     if (commAddressField && commAddressField.type === 'group') {
@@ -357,7 +360,7 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
                         acc[subField.name] = '';
                         return acc;
                       }, {});
-                      setFieldValue('communication_address', emptyAddress);
+                      formik.setFieldValue('communication_address', emptyAddress);
                     }
                   }
                 }
@@ -377,8 +380,8 @@ const DynamicForm = ({ schema, jobPostId, jobPosts, selectedJobPost, onJobChange
         type={field.type}
         fullWidth
         required={field.required}
-        error={touched[field.name] && !!errors[field.name]}
-        helperText={touched[field.name] && errors[field.name]}
+        error={formik.touched[field.name] && !!formik.errors[field.name]}
+        helperText={formik.touched[field.name] && formik.errors[field.name]}
         onChange={handleChange}
         multiline={field.type === 'textarea'}
         rows={field.type === 'textarea' ? 4 : 1}
