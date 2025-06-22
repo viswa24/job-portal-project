@@ -1,14 +1,13 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Box, Button, TextField, Typography, Stack, Grid, Paper, IconButton, Checkbox, FormControlLabel, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Formik, FieldArray, Field, getIn } from 'formik';
+import { FieldArray, Field, getIn } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate } from 'react-router-dom';
 import { Delete } from '@mui/icons-material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import SignatureCanvas from 'react-signature-canvas';
 
-function buildValidationSchema(fields) {
+export function buildValidationSchema(fields) {
   const schema = {};
   fields.forEach(field => {
     let validator;
@@ -102,8 +101,6 @@ const SignatureCanvasField = ({ field, formik }) => {
 };
 
 const DynamicForm = ({ schema, formik, jobPostId, jobPosts, selectedJobPost, onJobChange }) => {
-  const navigate = useNavigate();
-
   const calculateAge = (birthDate, asOnDate) => {
     if (!birthDate) return '';
     const birth = new Date(birthDate);
@@ -456,152 +453,60 @@ const DynamicForm = ({ schema, formik, jobPostId, jobPosts, selectedJobPost, onJ
     return `${totalYears} years, ${totalMonths} months, ${totalDays} days`;
   };
 
-  const initialValues = useMemo(() => {
-    const values = {};
-    if (schema && Array.isArray(schema.fields)) {
-      schema.fields.forEach(field => {
-        if (field.type === 'array') {
-          values[field.name] = [field.fields.reduce((acc, f) => ({ ...acc, [f.name]: '' }), {})];
-        } else if (field.type === 'group') {
-          values[field.name] = {};
-          if (Array.isArray(field.fields)) {
-            field.fields.forEach(subField => {
-              values[field.name][subField.name] = '';
-            });
-          }
-        } else {
-          values[field.name] = '';
-        }
-      });
-    }
-    return values;
-  }, [schema]);
+  const { values, touched, errors, setFieldValue, handleChange, isSubmitting } = formik;
 
-  const validationSchema = useMemo(() => {
-    if (schema && Array.isArray(schema.fields)) {
-      return buildValidationSchema(schema.fields)
-    }
-    return Yup.object();
-  }, [schema]);
-
-  if (!schema || !Array.isArray(schema.fields)) {
-    return <Typography>Loading form...</Typography>;
-  }
+  const fields = schema.fields || [];
+  const mainFields = fields.filter(f => f.name !== 'photo' && f.name !== 'signature' && f.name !== 'declaration');
+  const photoField = fields.find(f => f.name === 'photo');
+  const signatureField = fields.find(f => f.name === 'signature');
+  const declarationField = fields.find(f => f.name === 'declaration');
 
   return (
-    <Formik
-      initialValues={initialValues}
-      validationSchema={validationSchema}
-      onSubmit={async (values, { setSubmitting }) => {
-        const formData = new FormData();
-        formData.append('job_post', jobPostId);
-
-        const form_data = {};
-
-        for (const [key, value] of Object.entries(values)) {
-          const field = schema.fields.find(f => f.name === key);
-          if (value instanceof File) {
-            formData.append(key, value);
-          } else if (field && field.type === 'array' && Array.isArray(value)) {
-            const fileFields = field.fields.filter(f => f.type === 'file').map(f => f.name);
-            const processedArray = value.map((item, index) => {
-              const newItem = { ...item };
-              for (const fileField of fileFields) {
-                if (item[fileField] instanceof File) {
-                  const fileKey = `${key}_${index}_${fileField}`;
-                  formData.append(fileKey, item[fileField]);
-                  newItem[fileField] = fileKey; // Store a reference
-                }
-              }
-              return newItem;
-            });
-            form_data[key] = processedArray;
-          } else if (field && field.type === 'signature') {
-            form_data[key] = value; // data URL
-          } else {
-            form_data[key] = value;
-          }
-        }
-
-        formData.append('form_data', JSON.stringify(form_data));
-
-        // Append base fields if they are not part of the dynamic schema
-        if(form_data.full_name) formData.append('full_name', form_data.full_name);
-        if(form_data.email) formData.append('email', form_data.email);
-        if(form_data.phone) formData.append('phone', form_data.phone);
-
-        try {
-          const response = await fetch('/api/applications/', { method: 'POST', body: formData });
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Submission failed:', errorData);
-            throw new Error('Network response was not ok');
-          }
-          const result = await response.json();
-          navigate(`/success/${result.id}`);
-        } catch (error) {
-          console.error('Submission failed:', error);
-        }
-        setSubmitting(false);
-      }}
-      enableReinitialize
-    >
-      {formik => {
-        const fields = schema.fields || [];
-        const mainFields = fields.filter(f => f.name !== 'photo' && f.name !== 'signature' && f.name !== 'declaration');
-        const photoField = fields.find(f => f.name === 'photo');
-        const signatureField = fields.find(f => f.name === 'signature');
-        const declarationField = fields.find(f => f.name === 'declaration');
-
-        return (
-          <form onSubmit={formik.handleSubmit}>
-            <Stack spacing={3}>
-              {mainFields.map(field => (
-                <Box key={field.name}>
-                  {renderField(field, formik)}
-                  {field.name === 'date_of_birth' && jobPosts && jobPosts.length > 1 && (
-                    <Box sx={{ mt: 3 }}>
-                      <FormControl fullWidth>
-                        <InputLabel>Select Job Post</InputLabel>
-                        <Select
-                          value={selectedJobPost}
-                          label="Select Job Post"
-                          onChange={onJobChange}
-                        >
-                          {jobPosts.map((post) => (
-                            <MenuItem key={post.id} value={post.id}>
-                              {post.title}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  )}
-                </Box>
-              ))}
-              {photoField && (
-                <Box key={photoField.name}>
-                  {renderField(photoField, formik)}
-                </Box>
-              )}
-              {signatureField && (
-                <Box key={signatureField.name}>
-                  {renderField(signatureField, formik)}
-                </Box>
-              )}
-              {declarationField && (
-                <Box key={declarationField.name}>
-                  {renderField(declarationField, formik)}
-                </Box>
-              )}
-              <Button type="submit" variant="contained" color="primary" disabled={formik.isSubmitting}>
-                Submit Application
-              </Button>
-            </Stack>
-          </form>
-        );
-      }}
-    </Formik>
+    <form onSubmit={formik.handleSubmit}>
+      <Stack spacing={3}>
+        {mainFields.map(field => (
+          <Box key={field.name}>
+            {renderField(field, formik)}
+            {field.name === 'date_of_birth' && jobPosts && jobPosts.length > 1 && (
+              <Box sx={{ mt: 3 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Select Job Post</InputLabel>
+                  <Select
+                    value={selectedJobPost}
+                    label="Select Job Post"
+                    onChange={onJobChange}
+                  >
+                    {jobPosts.map((post) => (
+                      <MenuItem key={post.id} value={post.id}>
+                        {post.title}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+          </Box>
+        ))}
+        {photoField && (
+          <Box key={photoField.name}>
+            {renderField(photoField, formik)}
+          </Box>
+        )}
+        {signatureField && (
+          <Box key={signatureField.name}>
+            {renderField(signatureField, formik)}
+          </Box>
+        )}
+        {declarationField && (
+          <Box key={declarationField.name}>
+            {renderField(declarationField, formik)}
+          </Box>
+        )}
+        <Button type="submit" variant="contained" color="primary" disabled={isSubmitting}>
+          Submit Application
+        </Button>
+      </Stack>
+    </form>
   );
 };
 
