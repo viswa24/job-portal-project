@@ -55,7 +55,7 @@ const SuccessPage = () => {
           Application Submitted Successfully!
         </Typography>
         <Typography variant="body1" sx={{ mt: 2 }}>
-          We have recorded your application for <strong>{application?.agency_code}</strong>. Your registration id is <strong>{application?.id}</strong>.
+          We have recorded your application for <strong>{application?.agency_code}</strong>. Your registration id is <strong>{application?.custom_application_id}</strong>.
         </Typography>
       </Paper>
     </Container>

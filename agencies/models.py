@@ -5,7 +5,7 @@ from django.utils.text import slugify
 
 class Agency(models.Model):
     name = models.CharField(max_length=255)
-    code = models.SlugField(unique=True)
+    code = models.CharField(max_length=10, unique=True)
     description = models.TextField(blank=True)
     instructions = models.TextField(blank=True, help_text="Instructions to be displayed on the agency's landing page.")
     default_form_schema = models.JSONField(default=dict, help_text="Default form fields for all job posts")
@@ -15,7 +15,9 @@ class Agency(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.code:
-            self.code = slugify(self.name)
+            self.code = slugify(self.name).upper()
+        else:
+            self.code = self.code.upper()
         if not self.default_form_schema:
             self.default_form_schema = {
                 "fields": [

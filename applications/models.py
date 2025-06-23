@@ -16,6 +16,9 @@ class Application(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=20)
     
+    # Custom application ID (agency-specific)
+    custom_application_id = models.CharField(max_length=32, unique=True, blank=True, null=True)
+    
     # Dynamic form data
     form_data = models.JSONField()  # Stores all form submissions including custom fields
     
@@ -32,8 +35,16 @@ class Application(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if not self.custom_application_id:
+            agency_code = self.job_post.agency.code.upper()
+            # Count existing applications for this agency
+            count = Application.objects.filter(job_post__agency__code=agency_code).count() + 1
+            self.custom_application_id = f"{agency_code}-{count:03d}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.full_name} - {self.job_post.title}"
+        return f"{self.custom_application_id} - {self.full_name} - {self.job_post.title}"
 
     def get_total_experience(self):
         """

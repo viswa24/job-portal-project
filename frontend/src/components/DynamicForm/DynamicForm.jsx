@@ -464,25 +464,39 @@ const DynamicForm = ({ schema, formik, jobPostId, jobPosts, selectedJobPost, onJ
   return (
     <form onSubmit={formik.handleSubmit}>
       <Stack spacing={3}>
-        {mainFields.map(field => (
+        {mainFields.map((field, idx) => (
           <Box key={field.name}>
             {renderField(field, formik)}
-            {field.name === 'date_of_birth' && jobPosts && jobPosts.length > 1 && (
+            {field.name === 'date_of_birth' && (
               <Box sx={{ mt: 3 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Select Job Post</InputLabel>
-                  <Select
-                    value={selectedJobPost}
-                    label="Select Job Post"
-                    onChange={onJobChange}
-                  >
-                    {jobPosts.map((post) => (
-                      <MenuItem key={post.id} value={post.id}>
-                        {post.title}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                {jobPosts && jobPosts.length > 1 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Select Job Post</InputLabel>
+                    <Select
+                      value={selectedJobPost}
+                      label="Select Job Post"
+                      onChange={onJobChange}
+                    >
+                      {jobPosts.map((post) => (
+                        <MenuItem key={post.id} value={post.id}>
+                          {post.title}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+                {jobPosts && jobPosts.length === 1 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Job Post</InputLabel>
+                    <Select
+                      value={selectedJobPost}
+                      label="Job Post"
+                      disabled
+                    >
+                      <MenuItem value={jobPosts[0].id}>{jobPosts[0].title}</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
               </Box>
             )}
           </Box>

@@ -15,8 +15,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Application
-        fields = ['id', 'agency_code', 'job_post', 'job_post_details', 'full_name', 'email', 'phone', 'form_data', 'photo', 'signature', 'status', 'notes', 'documents', 'created_at', 'updated_at', 'ip_address']
-        read_only_fields = ['status', 'created_at', 'updated_at', 'ip_address']
+        fields = ['id', 'custom_application_id', 'agency_code', 'job_post', 'job_post_details', 'full_name', 'email', 'phone', 'form_data', 'photo', 'signature', 'status', 'notes', 'documents', 'created_at', 'updated_at', 'ip_address']
+        read_only_fields = ['custom_application_id', 'status', 'created_at', 'updated_at', 'ip_address']
     
     def get_agency_code(self, obj):
         return obj.job_post.agency.code
